@@ -3,16 +3,18 @@ import {
   SpreadsheetAgent,
   type SpreadsheetAgentUIMessage,
 } from "@/server/ai/agent";
+import type { Sheet } from "@/spreadsheet-service";
 
 async function POST(req: Request) {
   const body = (await req.json()) as {
     messages: SpreadsheetAgentUIMessage[];
     model: string;
+    sheets: Sheet[];
   };
 
   return createAgentUIStreamResponse({
     agent: SpreadsheetAgent,
-    options: { model: body.model },
+    options: { model: body.model, sheets: body.sheets },
     messages: body.messages,
     sendReasoning: true,
     sendSources: true,
