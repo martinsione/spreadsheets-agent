@@ -442,6 +442,7 @@ export default function Chat() {
                       );
                     case "tool-bashCodeExecution":
                     case "tool-codeExecution":
+                    case "tool-textEditor":
                     case "tool-webSearch":
                     case "tool-clearCellRange":
                     case "tool-copyTo":
@@ -466,9 +467,11 @@ export default function Chat() {
                                 ? "Executing Bash Code"
                                 : part.type === "tool-codeExecution"
                                   ? "Executing Code"
-                                  : part.type === "tool-webSearch"
-                                    ? "Searching the Web"
-                                    : part.input?.explanation
+                                  : part.type === "tool-textEditor"
+                                    ? "Editing Text"
+                                    : part.type === "tool-webSearch"
+                                      ? "Searching the Web"
+                                      : part.input?.explanation
                             }
                           />
                           <ToolContent>

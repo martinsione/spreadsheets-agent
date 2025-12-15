@@ -885,6 +885,7 @@ const clearCellRange = tool({
 export const tools = {
   bashCodeExecution: anthropic.tools.bash_20250124({}),
   codeExecution: anthropic.tools.codeExecution_20250825({}),
+  textEditor: anthropic.tools.textEditor_20250728({}),
   webSearch: anthropic.tools.webSearch_20250305({}),
   clearCellRange,
   copyTo,
