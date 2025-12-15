@@ -1,9 +1,19 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
+import {
+  type ChatOnToolCallCallback,
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from "ai";
 import { CopyIcon, RefreshCcwIcon } from "lucide-react";
 import { useState } from "react";
+import {
+  Confirmation,
+  ConfirmationAction,
+  ConfirmationActions,
+  ConfirmationTitle,
+} from "@/frontend/components/ai-elements/confirmation";
 import {
   Conversation,
   ConversationContent,
@@ -19,10 +29,6 @@ import {
 } from "@/frontend/components/ai-elements/message";
 import {
   PromptInput,
-  PromptInputActionAddAttachments,
-  PromptInputActionMenu,
-  PromptInputActionMenuContent,
-  PromptInputActionMenuTrigger,
   PromptInputAttachment,
   PromptInputAttachments,
   PromptInputBody,
@@ -57,6 +63,7 @@ import {
   ToolOutput,
 } from "@/frontend/components/ai-elements/tool";
 import type { SpreadsheetAgentUIMessage } from "@/server/ai/agent";
+import { writeTools } from "@/server/ai/tools";
 import * as spreadsheetService from "@/spreadsheet-service/excel";
 
 const MODELS = [
@@ -70,87 +77,124 @@ const MODELS = [
   },
 ] as const;
 
+const EDIT_MODES = [
+  {
+    name: "Ask before edits",
+    value: "ask",
+  },
+  {
+    name: "Accept all edits",
+    value: "auto",
+  },
+] as const;
+
 export default function Chat() {
   const [input, setInput] = useState("");
-  const [model, setModel] = useState<string>(MODELS[0].value);
-  const { messages, sendMessage, status, regenerate, addToolOutput } =
-    useChat<SpreadsheetAgentUIMessage>({
-      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
-      onToolCall: async ({ toolCall }) => {
-        // Must check !toolCall.dynamic to exclude dynamic tool calls from the union.
-        // Without this, TypeScript can't narrow the input type because the dynamic
-        // case (toolName: string, input: unknown) also matches any toolName check.
-        if (toolCall.dynamic) return;
+  const [model] = useState<string>(MODELS[0].value);
+  const [editMode, setEditMode] = useState<"ask" | "auto">(EDIT_MODES[0].value);
 
-        const { toolCallId, toolName, input } = toolCall;
+  const {
+    messages,
+    sendMessage,
+    status,
+    regenerate,
+    addToolOutput,
+    addToolApprovalResponse,
+  } = useChat<SpreadsheetAgentUIMessage>({
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+      prepareSendMessagesRequest: async ({ id, messages }) => ({
+        body: {
+          id,
+          messages,
+          model,
+          sheets: await spreadsheetService.getSheets(),
+        },
+      }),
+    }),
+    onToolCall: async ({ toolCall }) => {
+      if (toolCall.dynamic) return;
 
-        async function run<T>(fn: () => Promise<T>): Promise<void> {
-          try {
-            const output = await fn();
-            addToolOutput({
-              state: "output-available",
-              tool: toolName,
-              toolCallId,
-              output,
-            });
-          } catch (err) {
-            const errorText =
-              err instanceof Error ? err.message : "An unknown error occurred";
-            console.error(`Tool ${toolName} failed:`, err);
-            addToolOutput({
-              state: "output-error",
-              tool: toolName,
-              toolCallId,
-              errorText,
-            });
-          }
-        }
+      const isWriteTool = writeTools.includes(
+        toolCall.toolName as (typeof writeTools)[number],
+      );
 
-        switch (toolName) {
-          case "getCellRanges":
-            return run(() => spreadsheetService.getCellRanges(input));
-          case "searchData":
-            return run(() => spreadsheetService.searchData(input));
-          case "setCellRange":
-            return run(() => spreadsheetService.setCellRange(input));
-          case "modifySheetStructure":
-            return run(() => spreadsheetService.modifySheetStructure(input));
-          case "modifyWorkbookStructure":
-            return run(() => spreadsheetService.modifyWorkbookStructure(input));
-          case "copyTo":
-            return run(() => spreadsheetService.copyTo(input));
-          case "getAllObjects":
-            return run(() => spreadsheetService.getAllObjects(input));
-          case "modifyObject":
-            return run(() => spreadsheetService.modifyObject(input));
-          case "resizeRange":
-            return run(() => spreadsheetService.resizeRange(input));
-          case "clearCellRange":
-            return run(() => spreadsheetService.clearCellRange(input));
-          default:
-            console.warn(`Unhandled tool: ${toolName}`);
-        }
-      },
-    });
+      if (isWriteTool && editMode === "auto") {
+        addToolApprovalResponse({ id: toolCall.toolCallId, approved: true });
+      }
 
-  async function handleSubmit(message: PromptInputMessage) {
+      await executeTool(toolCall);
+    },
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+  });
+
+  function executeTool(
+    toolCall: Parameters<
+      ChatOnToolCallCallback<SpreadsheetAgentUIMessage>
+    >[number]["toolCall"],
+  ) {
+    if (toolCall.dynamic) return;
+    const { toolName, toolCallId, input } = toolCall;
+
+    async function run<T>(fn: () => Promise<T>): Promise<void> {
+      try {
+        const output = await fn();
+        addToolOutput({
+          state: "output-available",
+          tool: toolName,
+          toolCallId,
+          output,
+        });
+      } catch (err) {
+        const errorText =
+          err instanceof Error ? err.message : "An unknown error occurred";
+        console.error(`Tool ${toolName} failed:`, err);
+        addToolOutput({
+          state: "output-error",
+          tool: toolName,
+          toolCallId,
+          errorText,
+        });
+      }
+    }
+
+    switch (toolName) {
+      case "getCellRanges":
+        return run(() => spreadsheetService.getCellRanges(input));
+      case "searchData":
+        return run(() => spreadsheetService.searchData(input));
+      case "setCellRange":
+        return run(() => spreadsheetService.setCellRange(input));
+      case "modifySheetStructure":
+        return run(() => spreadsheetService.modifySheetStructure(input));
+      case "modifyWorkbookStructure":
+        return run(() => spreadsheetService.modifyWorkbookStructure(input));
+      case "copyTo":
+        return run(() => spreadsheetService.copyTo(input));
+      case "getAllObjects":
+        return run(() => spreadsheetService.getAllObjects(input));
+      case "modifyObject":
+        return run(() => spreadsheetService.modifyObject(input));
+      case "resizeRange":
+        return run(() => spreadsheetService.resizeRange(input));
+      case "clearCellRange":
+        return run(() => spreadsheetService.clearCellRange(input));
+      default:
+        console.warn(`Unhandled tool: ${toolName}`);
+    }
+  }
+
+  function handleSubmit(message: PromptInputMessage) {
     const hasText = Boolean(message.text);
     const hasAttachments = Boolean(message.files?.length);
     if (!(hasText || hasAttachments)) {
       return;
     }
 
-    const sheets = await spreadsheetService.getSheets();
-
-    sendMessage(
-      {
-        text: message.text || "Sent with attachments",
-        files: message.files,
-      },
-      {
-        body: { model, sheets },
-      },
-    );
+    sendMessage({
+      text: message.text || "Sent with attachments",
+      files: message.files,
+    });
 
     setInput("");
   }
@@ -247,7 +291,10 @@ export default function Chat() {
                     case "tool-searchData":
                     case "tool-setCellRange":
                       return (
-                        <Tool key={`${message.id}-${partIdx}`}>
+                        <Tool
+                          key={`${message.id}-${partIdx}-${part.state}`}
+                          defaultOpen={part.state === "approval-requested"}
+                        >
                           <ToolHeader
                             state={part.state}
                             type={part.type}
@@ -262,11 +309,65 @@ export default function Chat() {
                             }
                           />
                           <ToolContent>
-                            <ToolInput input={part.input} />
+                            <ToolInput
+                              toolName={part.type.replace("tool-", "")}
+                              input={part.input}
+                            />
                             <ToolOutput
+                              state={part.state}
                               output={part.output}
                               errorText={part.errorText}
                             />
+                            <Confirmation
+                              state={part.state}
+                              approval={part.approval}
+                            >
+                              <ConfirmationTitle>
+                                Allow this action?
+                              </ConfirmationTitle>
+                              <ConfirmationActions>
+                                <ConfirmationAction
+                                  variant="outline"
+                                  onClick={() =>
+                                    addToolApprovalResponse({
+                                      // biome-ignore lint/style/noNonNullAssertion: <>
+                                      id: part.approval!.id,
+                                      approved: false,
+                                    })
+                                  }
+                                >
+                                  Deny
+                                </ConfirmationAction>
+                                <ConfirmationAction
+                                  onClick={() => {
+                                    const toolName = part.type.replace(
+                                      "tool-",
+                                      "",
+                                    ) as (typeof writeTools)[number];
+
+                                    if (!writeTools.includes(toolName)) {
+                                      return;
+                                    }
+
+                                    addToolApprovalResponse({
+                                      // biome-ignore lint/style/noNonNullAssertion: <>
+                                      id: part.approval!.id,
+                                      approved: true,
+                                    });
+
+                                    executeTool({
+                                      // biome-ignore lint/suspicious/noExplicitAny: not worth dealing with this now
+                                      input: part.input as any,
+                                      toolCallId: part.toolCallId,
+                                      toolName,
+                                      dynamic: false,
+                                    });
+                                  }}
+                                >
+                                  Approve
+                                </ConfirmationAction>
+                              </ConfirmationActions>
+                            </Confirmation>
                           </ToolContent>
                         </Tool>
                       );
@@ -302,28 +403,19 @@ export default function Chat() {
           </PromptInputBody>
           <PromptInputFooter>
             <PromptInputTools>
-              <PromptInputActionMenu>
-                <PromptInputActionMenuTrigger />
-                <PromptInputActionMenuContent>
-                  <PromptInputActionAddAttachments />
-                </PromptInputActionMenuContent>
-              </PromptInputActionMenu>
               <PromptInputSelect
-                onValueChange={(value) => {
-                  setModel(value);
+                onValueChange={(value: "ask" | "auto") => {
+                  setEditMode(value);
                 }}
-                value={model}
+                value={editMode}
               >
                 <PromptInputSelectTrigger>
                   <PromptInputSelectValue />
                 </PromptInputSelectTrigger>
                 <PromptInputSelectContent>
-                  {MODELS.map((model) => (
-                    <PromptInputSelectItem
-                      key={model.value}
-                      value={model.value}
-                    >
-                      {model.name}
+                  {EDIT_MODES.map((mode) => (
+                    <PromptInputSelectItem key={mode.value} value={mode.value}>
+                      {mode.name}
                     </PromptInputSelectItem>
                   ))}
                 </PromptInputSelectContent>

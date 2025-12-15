@@ -898,11 +898,11 @@ export const tools = {
   setCellRange,
 };
 
-export const writeTools: Array<keyof typeof tools> = [
+export const writeTools = [
   "clearCellRange",
   "copyTo",
   "modifyObject",
   "modifySheetStructure",
   "modifyWorkbookStructure",
   "setCellRange",
-];
+] as const satisfies Array<keyof typeof tools>;
