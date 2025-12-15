@@ -10,7 +10,9 @@ import {
   ChevronsRightIcon,
   CopyIcon,
   HandIcon,
+  PlusIcon,
   RefreshCcwIcon,
+  SettingsIcon,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
@@ -62,6 +64,26 @@ import {
   ToolOutput,
 } from "@/frontend/components/ai-elements/tool";
 import { ToolApprovalBar } from "@/frontend/components/ai-elements/tool-approval-bar";
+import { Anthropic } from "@/frontend/components/icons/anthropic";
+import { Button } from "@/frontend/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/frontend/components/ui/dialog";
+import { Input } from "@/frontend/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/frontend/components/ui/select";
+import { useLocalStorage } from "@/frontend/lib/utils";
 import type { SpreadsheetAgentUIMessage } from "@/server/ai/agent";
 import { writeTools } from "@/server/ai/tools";
 import * as spreadsheetService from "@/spreadsheet-service/excel";
@@ -92,8 +114,11 @@ const EDIT_MODES = [
 
 export default function Chat() {
   const [input, setInput] = useState("");
-  const [model] = useState<string>(MODELS[0].value);
+  const [model, setModel] = useLocalStorage<string>("model", MODELS[0].value);
   const [editMode, setEditMode] = useState<"ask" | "auto">(EDIT_MODES[0].value);
+  const [apiKey, setApiKey] = useLocalStorage("ANTHROPIC_API_KEY", "");
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const {
     messages,
@@ -110,6 +135,7 @@ export default function Chat() {
           id,
           messages,
           model,
+          ANTHROPIC_API_KEY: apiKey,
           sheets: await spreadsheetService.getSheets(),
         },
       }),
@@ -264,9 +290,81 @@ export default function Chat() {
     });
   }
 
+  function handleSaveApiKey() {
+    setApiKey(apiKeyInput);
+    setSettingsOpen(false);
+  }
+
+  function handleNewChat() {
+    window.location.reload();
+  }
+
   return (
     <div className="relative mx-auto size-full h-screen max-w-4xl">
       <div className="flex h-full flex-col">
+        <header className="flex items-center justify-between border-b px-4 py-2">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={handleNewChat}>
+              <PlusIcon className="size-4" />
+            </Button>
+            <Select value={model} onValueChange={setModel}>
+              <SelectTrigger className="w-[180px] border-none shadow-none hover:bg-accent hover:text-accent-foreground">
+                <Anthropic className="size-4 fill-[#D97757]" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MODELS.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    {m.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Dialog
+            open={settingsOpen}
+            onOpenChange={(open) => {
+              if (open) setApiKeyInput(apiKey);
+              setSettingsOpen(open);
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <SettingsIcon className="size-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Settings</DialogTitle>
+                <DialogDescription>
+                  Configure your API key to use the chat.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <label htmlFor="api-key" className="font-medium text-sm">
+                    Anthropic API Key
+                  </label>
+                  <Input
+                    id="api-key"
+                    type="password"
+                    placeholder="sk-ant-..."
+                    value={apiKeyInput}
+                    onChange={(e) => setApiKeyInput(e.target.value)}
+                  />
+                  <p className="text-muted-foreground text-xs">
+                    Your API key is stored locally and never sent to our
+                    servers.
+                  </p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={handleSaveApiKey}>Save</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </header>
+
         <Conversation className="h-full">
           <ConversationContent className="overflow-x-hidden p-6 pb-16">
             {messages.map((message) => (

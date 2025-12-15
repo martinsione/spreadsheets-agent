@@ -9,12 +9,21 @@ async function POST(req: Request) {
   const body = (await req.json()) as {
     messages: SpreadsheetAgentUIMessage[];
     model: string;
+    ANTHROPIC_API_KEY: string;
     sheets: Sheet[];
   };
 
+  if (!body.ANTHROPIC_API_KEY) {
+    return new Response("API key is required", { status: 400 });
+  }
+
   return createAgentUIStreamResponse({
     agent: SpreadsheetAgent,
-    options: { model: body.model, sheets: body.sheets },
+    options: {
+      model: body.model,
+      ANTHROPIC_API_KEY: body.ANTHROPIC_API_KEY,
+      sheets: body.sheets,
+    },
     messages: body.messages,
     sendReasoning: true,
     sendSources: true,
