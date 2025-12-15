@@ -304,7 +304,7 @@ const getCellRanges = tool({
 
 const searchData = tool({
   description:
-    "READ. Search for text across the spreadsheet and return matching cell locations. Results can be used with get_cell_ranges for detailed analysis.",
+    "READ. Search for text across the spreadsheet and return matching cell locations. Results can be used with getCellRanges for detailed analysis.",
   inputSchema: z
     .object({
       searchTerm: z
@@ -411,7 +411,7 @@ const setCellRange = tool({
           z.transform((data) => {
             if (typeof data === "string") {
               console.debug(
-                "[tools::set_cell_range] received cells as JSON string, attempting to parse",
+                "[tools::setCellRange] received cells as JSON string, attempting to parse",
               );
               try {
                 return JSON.parse(data);
