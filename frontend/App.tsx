@@ -6,7 +6,12 @@ import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithToolCalls,
 } from "ai";
-import { CopyIcon, RefreshCcwIcon } from "lucide-react";
+import {
+  ChevronsRightIcon,
+  CopyIcon,
+  HandIcon,
+  RefreshCcwIcon,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   Conversation,
@@ -76,10 +81,12 @@ const EDIT_MODES = [
   {
     name: "Ask before edits",
     value: "ask",
+    icon: HandIcon,
   },
   {
     name: "Accept all edits",
     value: "auto",
+    icon: ChevronsRightIcon,
   },
 ] as const;
 
@@ -430,6 +437,7 @@ export default function Chat() {
                 <PromptInputSelectContent>
                   {EDIT_MODES.map((mode) => (
                     <PromptInputSelectItem key={mode.value} value={mode.value}>
+                      <mode.icon className="size-4" />
                       {mode.name}
                     </PromptInputSelectItem>
                   ))}
