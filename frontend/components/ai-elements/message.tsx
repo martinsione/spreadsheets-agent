@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
-import { Streamdown } from "streamdown";
+import type { BundledLanguage } from "shiki";
 import { Button } from "@/frontend/components/ui/button";
 import {
   ButtonGroup,
@@ -21,10 +21,44 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/frontend/components/ui/tooltip";
+import { type Components, Streamdown } from "@/frontend/lib/streamdown";
 import { cn } from "@/frontend/lib/utils";
+import { CodeBlock, CodeBlockCopyButton } from "./code-block";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
+};
+
+// Custom code component using your CodeBlock with shiki
+const LANG_REGEX = /language-([^\s]+)/;
+
+const customCodeComponent: Components["code"] = ({
+  node,
+  className,
+  children,
+}) => {
+  const inline = node?.position?.start.line === node?.position?.end.line;
+
+  if (inline) {
+    return (
+      <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm">
+        {children}
+      </code>
+    );
+  }
+
+  const lang = (className?.match(LANG_REGEX)?.[1] ?? "text") as BundledLanguage;
+  const code = typeof children === "string" ? children : String(children);
+
+  return (
+    <CodeBlock code={code} language={lang}>
+      <CodeBlockCopyButton />
+    </CodeBlock>
+  );
+};
+
+const streamdownComponents: Components = {
+  code: customCodeComponent,
 };
 
 export const Message = ({ className, from, ...props }: MessageProps) => (
@@ -307,12 +341,13 @@ export const MessageBranchPage = ({
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
 export const MessageResponse = memo(
-  ({ className, ...props }: MessageResponseProps) => (
+  ({ className, components, ...props }: MessageResponseProps) => (
     <Streamdown
       className={cn(
         "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
         className,
       )}
+      components={{ ...streamdownComponents, ...components }}
       {...props}
     />
   ),
