@@ -11,23 +11,23 @@ bun install
 ### Excel
 
 ```bash
-bun excel:dev        # Start dev server on port 3000
-bun excel:certs      # Install dev certificates
-bun excel:sideload   # Load add-in in Excel
+bun --filter @repo/addins excel:certs      # Install dev certificates
+bun --filter @repo/addins excel:sideload   # Load add-in in Excel
+bun --filter @repo/addins excel:dev        # Start dev server on port 3000
 ```
 
 ### Google Sheets
 
 ```bash
-bun sheets:login     # Login to clasp
-bun sheets:setup     # Create Apps Script project
-bun sheets:push      # Push code to Google Sheets
+bun --filter @repo/addins sheets:login     # Login to clasp
+bun --filter @repo/addins sheets:setup     # Create Apps Script project
+bun --filter @repo/addins sheets:push      # Push code to Google Sheets
 ```
 
 ### Build
 
 ```bash
-bun run build        # Build for production
+bun --filter @repo/addins run build        # Build for production
 ```
 
 ### Other

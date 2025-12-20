@@ -1,13 +1,20 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": [
-    "frontend/index.sheets.tsx",
-    "frontend/index.excel.tsx",
-    "spreadsheet-service/google-sheets.ts", // Google Sheets functions entrypoint
-    "server/index.ts"
-  ],
   "exclude": ["exports", "types"],
-  "ignoreDependencies": [
-    "vscode-jsonrpc" // neeeded for streamdown https://github.com/vercel/streamdown/issues/182
-  ]
+  "workspaces": {
+    "apps/addins": {
+      "entry": [
+        "frontend/index.sheets.tsx",
+        "frontend/index.excel.tsx",
+        "spreadsheet-service/google-sheets.ts", // Google Sheets functions entrypoint
+        "server/index.ts"
+      ],
+      "ignoreDependencies": [
+        "vscode-jsonrpc" // neeeded for streamdown https://github.com/vercel/streamdown/issues/182
+      ]
+    },
+    "apps/web": {
+      "entry": ["src/app/{page,layout}.tsx"]
+    }
+  }
 }

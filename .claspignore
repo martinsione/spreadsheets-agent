@@ -1,9 +1,0 @@
-# Only push these files to Google Apps Script:
-# - code.js (server functions)
-# - appsscript.json (manifest)
-# - index.html (web app UI)
-
-# Ignore frontend bundles (they use top-level await which GAS doesn't support)
-**/*.map
-**/chunk-*.js
-**/chunk-*.css
