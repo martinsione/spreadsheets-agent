@@ -9,11 +9,8 @@
     "skipLibCheck": true,
     "declaration": true,
     "jsx": "react-jsx",
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@repo/core": ["../../packages/core/src"],
-      "@repo/core/*": ["../../packages/core/src/*"]
+      "@/*": ["./*"]
     }
   },
   "include": ["**/*"],

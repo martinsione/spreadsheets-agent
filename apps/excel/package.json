@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "clean": "git clean -xdf -e '.env*'",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "build": "bun run build.ts",
     "dev": "PORT=8888 bun --hot dev-server.ts",
     "certs": "office-addin-dev-certs install",
@@ -13,9 +13,9 @@
     "sideload:stop": "office-addin-debugging stop manifest.dev.xml"
   },
   "dependencies": {
-    "@ai-sdk/react": "^3.0.0-beta.162",
+    "@ai-sdk/react": "^3.0.0",
     "@repo/core": "workspace:*",
-    "ai": "^6.0.0-beta.159",
+    "ai": "^6.0.0",
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
@@ -26,6 +26,7 @@
     "@types/office-js": "^1.0.565",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@typescript/native-preview": "^7.0.0-dev.20251222.1",
     "bun-plugin-tailwind": "^0.1.2",
     "office-addin-debugging": "^6.0.6",
     "office-addin-dev-certs": "^2.0.6",

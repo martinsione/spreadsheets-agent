@@ -11,17 +11,30 @@
     "./ai/prompt": "./src/ai/prompt.ts",
     "./ai/schema": "./src/ai/schema.ts",
     "./ai/chat": "./src/ai/chat.ts",
-    "./ui/*": "./src/ui/*",
-    "./lib/*": "./src/lib/*"
+    "./lib/utils": "./src/lib/utils.ts",
+    "./ui/ai-elements/conversation": "./src/ui/ai-elements/conversation.tsx",
+    "./ui/ai-elements/loader": "./src/ui/ai-elements/loader.tsx",
+    "./ui/ai-elements/message": "./src/ui/ai-elements/message.tsx",
+    "./ui/ai-elements/prompt-input": "./src/ui/ai-elements/prompt-input.tsx",
+    "./ui/ai-elements/reasoning": "./src/ui/ai-elements/reasoning.tsx",
+    "./ui/ai-elements/sources": "./src/ui/ai-elements/sources.tsx",
+    "./ui/ai-elements/tool": "./src/ui/ai-elements/tool.tsx",
+    "./ui/ai-elements/tool-approval-bar": "./src/ui/ai-elements/tool-approval-bar.tsx",
+    "./ui/icons/anthropic": "./src/ui/icons/anthropic.tsx",
+    "./ui/ui/button": "./src/ui/ui/button.tsx",
+    "./ui/ui/dialog": "./src/ui/ui/dialog.tsx",
+    "./ui/ui/input": "./src/ui/ui/input.tsx",
+    "./ui/ui/select": "./src/ui/ui/select.tsx"
   },
   "scripts": {
+    "clean": "git clean -xdf -e '.env*'",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.0-beta.91",
+    "@ai-sdk/anthropic": "^3.0.0",
     "@shikijs/langs": "^3.20.0",
     "@shikijs/themes": "^3.20.0",
-    "ai": "^6.0.0-beta.159",
+    "ai": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -30,7 +43,7 @@
     "lucide-react": "^0.562.0",
     "marked": "^17.0.1",
     "motion": "^12.23.26",
-    "nanoid": "^5.1.5",
+    "nanoid": "^5.1.6",
     "radix-ui": "^1.4.3",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
@@ -40,7 +53,7 @@
     "remend": "^1.0.1",
     "shiki": "^3.20.0",
     "tailwind-merge": "^3.4.0",
-    "tokenlens": "^1.0.0",
+    "tokenlens": "^1.3.1",
     "unified": "^11.0.5",
     "use-stick-to-bottom": "^1.1.1",
     "zod": "^4.2.1"
@@ -48,6 +61,7 @@
   "devDependencies": {
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@typescript/native-preview": "^7.0.0-dev.20251222.1",
     "tailwindcss": "^4.1.18",
     "tw-animate-css": "^1.4.0",
     "typescript": "^5.9.3"
