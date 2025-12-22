@@ -27,7 +27,7 @@ export default function WorkbookPage() {
 
   return (
     <div className="flex h-full w-full">
-      <div className="h-full flex-1 overflow-hidden">
+      <div className="contain-[paint] h-full flex-1 overflow-hidden">
         <Spreadsheet
           onInitialized={(workbook) => {
             workbookRef.current = workbook;
