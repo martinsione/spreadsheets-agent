@@ -2,7 +2,7 @@
 
 import { Hand } from "lucide-react";
 import { useCallback, useEffectEvent } from "react";
-import type { tools, writeTools } from "../../ai/tools";
+import type { tools } from "../../ai/tools";
 import { Button } from "../ui/button";
 
 export type ToolApprovalBarProps = {
@@ -13,21 +13,7 @@ export type ToolApprovalBarProps = {
   onDecline: () => void;
 };
 
-function formatToolName(toolName: (typeof writeTools)[number]): string {
-  const nameMap: Record<(typeof writeTools)[number], string> = {
-    clearCellRange: "clear cells",
-    copyTo: "copy data",
-    modifyObject: "modify object",
-    modifySheetStructure: "modify sheet structure",
-    modifyWorkbookStructure: "modify workbook",
-    setCellRange: "edit cells",
-  };
-
-  return nameMap[toolName] || toolName.replace(/([A-Z])/g, " $1").toLowerCase();
-}
-
 export function ToolApprovalBar({
-  toolName,
   explanation,
   onApprove,
   onApproveAll,
@@ -54,42 +40,32 @@ export function ToolApprovalBar({
     return () => document.removeEventListener("keydown", handleKeyDown);
   });
 
-  const toolDisplayName = toolName
-    ? formatToolName(toolName as (typeof writeTools)[number])
-    : "perform action";
-
   return (
-    <div className="fixed bottom-0 left-1/2 z-50 w-full max-w-4xl -translate-x-1/2 rounded-t-3xl border border-t bg-background px-6 py-4">
-      <div className="flex flex-col gap-2 pb-4">
-        <div className="flex items-center gap-2">
-          <Hand className="size-4 text-muted-foreground" />
-          <span className="font-medium text-sm">Permission required</span>
-        </div>
-        <span className="text-muted-foreground text-sm">
-          Agent wants to {explanation}
-        </span>
+    <div className="absolute bottom-0 z-10 w-full border-t bg-muted px-3 py-6">
+      <div className="mb-2 flex items-center gap-2">
+        <Hand className="size-4 shrink-0 text-muted-foreground" />
+        <span className="font-medium text-sm">Permission required</span>
       </div>
-
+      <p className="mb-3 text-muted-foreground text-sm">{explanation}</p>
       <div className="flex flex-col gap-2">
-        <Button type="button" variant="default" onClick={onApprove}>
-          Allow
-          <kbd className="rounded bg-primary-foreground/20 px-1.5 py-0.5 font-mono text-xs">
-            ↵
-          </kbd>
-        </Button>
-
-        <Button type="button" onClick={onApproveAll} variant="outline">
-          Allow all edits
-          <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-muted-foreground text-xs"></kbd>
-          <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-muted-foreground text-xs">
-            ⇧ + ↵
-          </kbd>
-        </Button>
-
         <Button type="button" onClick={onDecline} variant="outline">
           Decline
           <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-muted-foreground text-xs">
             ESC
+          </kbd>
+        </Button>
+
+        <Button type="button" onClick={onApproveAll} variant="outline">
+          Allow all
+          <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-muted-foreground text-xs">
+            ⇧↵
+          </kbd>
+        </Button>
+
+        <Button type="button" variant="default" onClick={onApprove}>
+          Allow
+          <kbd className="rounded bg-primary-foreground/20 px-1.5 py-0.5 font-mono text-xs">
+            ↵
           </kbd>
         </Button>
       </div>

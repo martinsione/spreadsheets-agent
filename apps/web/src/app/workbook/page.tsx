@@ -35,7 +35,7 @@ export default function WorkbookPage() {
         />
       </div>
 
-      <div className="h-full w-[420px] overflow-hidden border-border border-l bg-background">
+      <div className="h-full w-[300px] overflow-hidden border-border border-l bg-background">
         <Chat spreadsheetService={spreadsheetService} environment="web" />
       </div>
     </div>

@@ -91,7 +91,7 @@ import {
   RefreshCcwIcon,
   SettingsIcon,
 } from "lucide-react";
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import type * as z from "zod";
 
 type CallOptionsSchema = z.infer<typeof callOptionsSchema>;
@@ -288,6 +288,32 @@ export function Chat({ spreadsheetService, environment }: ChatProps) {
 
     setInput("");
   }
+
+  // Find the pending approval request from messages
+  const pendingApproval = useMemo(() => {
+    for (const message of messages) {
+      for (const part of message.parts) {
+        if (
+          "state" in part &&
+          part.state === "approval-requested" &&
+          "approval" in part
+        ) {
+          const toolName = part.type.replace("tool-", "") as keyof typeof tools;
+          const input = part.input as Record<string, unknown> | undefined;
+          return {
+            messageId: message.id,
+            toolName,
+            explanation:
+              input && "explanation" in input ? String(input.explanation) : "",
+            approvalId: part.approval.id,
+            toolCallId: part.toolCallId,
+            input: part.input,
+          };
+        }
+      }
+    }
+    return null;
+  }, [messages]);
 
   return (
     <div className="relative mx-auto size-full h-full">
@@ -498,57 +524,6 @@ export function Chat({ spreadsheetService, environment }: ChatProps) {
                               />
                             </ToolContent>
                           </Tool>
-                          {(() => {
-                            if (part.state !== "approval-requested") return;
-
-                            const toolName = part.type.replace(
-                              "tool-",
-                              "",
-                            ) as keyof typeof tools;
-
-                            const approve = () => {
-                              addToolApprovalResponse({
-                                id: part.approval.id,
-                                approved: true,
-                              });
-                              executeTool({
-                                // biome-ignore lint/suspicious/noExplicitAny: <>
-                                input: part.input as any,
-                                toolCallId: part.toolCallId,
-                                toolName,
-                              });
-                            };
-
-                            if (editMode === "auto") {
-                              approve();
-                              return null;
-                            }
-
-                            return (
-                              <ToolApprovalBar
-                                key={`${message.id}-${partIdx}-${part.state}`}
-                                explanation={
-                                  "explanation" in part.input
-                                    ? part.input.explanation
-                                    : ""
-                                }
-                                toolName={toolName}
-                                onDecline={() => {
-                                  addToolApprovalResponse({
-                                    id: part.approval.id,
-                                    approved: false,
-                                  });
-                                }}
-                                onApprove={() => {
-                                  approve();
-                                }}
-                                onApproveAll={() => {
-                                  setEditMode("auto");
-                                  approve();
-                                }}
-                              />
-                            );
-                          })()}
                         </Fragment>
                       );
                     }
@@ -562,6 +537,47 @@ export function Chat({ spreadsheetService, environment }: ChatProps) {
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>
+
+        {pendingApproval &&
+          (() => {
+            const approve = () => {
+              addToolApprovalResponse({
+                id: pendingApproval.approvalId,
+                approved: true,
+              });
+              executeTool({
+                // biome-ignore lint/suspicious/noExplicitAny: <>
+                input: pendingApproval.input as any,
+                toolCallId: pendingApproval.toolCallId,
+                toolName: pendingApproval.toolName,
+              });
+            };
+
+            if (editMode === "auto") {
+              approve();
+              return null;
+            }
+
+            return (
+              <ToolApprovalBar
+                key={pendingApproval.approvalId}
+                explanation={pendingApproval.explanation}
+                toolName={pendingApproval.toolName}
+                onDecline={() => {
+                  addToolApprovalResponse({
+                    id: pendingApproval.approvalId,
+                    approved: false,
+                  });
+                }}
+                onApprove={approve}
+                onApproveAll={() => {
+                  setEditMode("auto");
+                  approve();
+                }}
+              />
+            );
+          })()}
+
         <PromptInput
           className="px-3 **:data-[slot=input-group]:rounded-b-none"
           globalDrop
