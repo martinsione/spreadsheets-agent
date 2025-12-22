@@ -1,18 +1,25 @@
 "use client";
 
 import type GC from "@mescius/spread-sheets";
-import { useCallback, useMemo, useRef } from "react";
-import { Spreadsheet } from "@/components/spreadsheet";
+import dynamic from "next/dynamic";
+import { useMemo, useRef } from "react";
 import { createWebSpreadsheetService } from "@/lib/spreadsheet-service";
 import { Chat } from "./chat";
 
+const Spreadsheet = dynamic(
+  () => import("@/components/spreadsheet").then((mod) => mod.Spreadsheet),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full w-full animate-pulse items-center justify-center text-muted-foreground duration-300">
+        Loading spreadsheet...
+      </div>
+    ),
+  },
+);
+
 export default function WorkbookPage() {
   const workbookRef = useRef<GC.Spread.Sheets.Workbook | null>(null);
-
-  const handleWorkbookInit = useCallback((wb: GC.Spread.Sheets.Workbook) => {
-    workbookRef.current = wb;
-  }, []);
-
   const spreadsheetService = useMemo(
     () => createWebSpreadsheetService(() => workbookRef.current),
     [],
@@ -21,10 +28,13 @@ export default function WorkbookPage() {
   return (
     <div className="flex h-full w-full">
       <div className="h-full flex-1 overflow-hidden">
-        <Spreadsheet onInitialized={handleWorkbookInit} />
+        <Spreadsheet
+          onInitialized={(workbook) => {
+            workbookRef.current = workbook;
+          }}
+        />
       </div>
 
-      {/* AI Sidebar - Right Panel */}
       <div className="h-full w-[420px] overflow-hidden border-border border-l bg-background">
         <Chat spreadsheetService={spreadsheetService} />
       </div>

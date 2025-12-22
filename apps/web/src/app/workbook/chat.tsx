@@ -568,7 +568,6 @@ export function Chat({ spreadsheetService }: ChatProps) {
           <ConversationScrollButton />
         </Conversation>
         <PromptInput
-          autoFocus
           className="px-3 **:data-[slot=input-group]:rounded-b-none"
           globalDrop
           multiple
@@ -583,7 +582,8 @@ export function Chat({ spreadsheetService }: ChatProps) {
           </PromptInputHeader>
           <PromptInputBody>
             <PromptInputTextarea
-              className="min-h-24 text-sm"
+              autoFocus
+              className="min-h-24 text-sm!"
               onChange={(e) => setInput(e.target.value)}
               value={input}
             />

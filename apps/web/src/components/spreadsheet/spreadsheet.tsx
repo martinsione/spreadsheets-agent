@@ -1,21 +1,11 @@
 "use client";
 
+import "@mescius/spread-sheets/styles/gc.spread.sheets.excel2016colorful.css";
+import "@mescius/spread-sheets-charts";
+import "@mescius/spread-sheets-pivot-addon";
 import type GC from "@mescius/spread-sheets";
-import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
-
-// Dynamically import SpreadJS components to avoid SSR issues
-const SpreadSheets = dynamic(
-  () => import("@mescius/spread-sheets-react").then((mod) => mod.SpreadSheets),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-full w-full animate-pulse items-center justify-center text-muted-foreground duration-300">
-        Loading spreadsheet...
-      </div>
-    ),
-  },
-);
+import { SpreadSheets } from "@mescius/spread-sheets-react";
+import { useCallback, useRef } from "react";
 
 export interface SpreadsheetHandle {
   getWorkbook: () => GC.Spread.Sheets.Workbook | null;
@@ -28,19 +18,6 @@ interface SpreadsheetProps {
 
 export function Spreadsheet({ onInitialized, className }: SpreadsheetProps) {
   const workbookRef = useRef<GC.Spread.Sheets.Workbook | null>(null);
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    import(
-      "@mescius/spread-sheets/styles/gc.spread.sheets.excel2016colorful.css"
-    );
-    Promise.all([
-      import("@mescius/spread-sheets-charts"),
-      import("@mescius/spread-sheets-pivot-addon"),
-    ]).then(() => {
-      setIsReady(true);
-    });
-  }, []);
 
   const handleWorkbookInit = useCallback(
     (spread: GC.Spread.Sheets.Workbook) => {
@@ -53,7 +30,6 @@ export function Spreadsheet({ onInitialized, className }: SpreadsheetProps) {
       spread.options.allowContextMenu = true;
       spread.options.allowUserEditFormula = true;
 
-      // Wait for sheets to be available before notifying
       let retries = 0;
       const waitForReady = () => {
         if (spread.getSheetCount() > 0) {
@@ -66,7 +42,6 @@ export function Spreadsheet({ onInitialized, className }: SpreadsheetProps) {
         } else if (retries++ < 100) {
           requestAnimationFrame(waitForReady);
         } else {
-          // Fallback: create a default sheet if SpreadJS didn't
           spread.addSheet(0);
           const sheet = spread.getSheet(0);
           if (sheet) {
@@ -82,21 +57,10 @@ export function Spreadsheet({ onInitialized, className }: SpreadsheetProps) {
     [onInitialized],
   );
 
-  if (!isReady) {
-    return (
-      <div className="flex h-full w-full animate-pulse items-center justify-center text-muted-foreground duration-300">
-        Loading spreadsheet...
-      </div>
-    );
-  }
-
   return (
     <SpreadSheets
       workbookInitialized={handleWorkbookInit}
-      hostStyle={{
-        width: "100%",
-        height: "100%",
-      }}
+      hostStyle={{ width: "100%", height: "100%" }}
       hostClass={className}
     />
   );
