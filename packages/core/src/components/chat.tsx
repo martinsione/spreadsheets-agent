@@ -91,7 +91,7 @@ import {
   RefreshCcwIcon,
   SettingsIcon,
 } from "lucide-react";
-import { Fragment, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import type * as z from "zod";
 
 type CallOptionsSchema = z.infer<typeof callOptionsSchema>;
@@ -123,7 +123,7 @@ interface ChatProps {
   environment: z.infer<typeof callOptionsSchema>["environment"];
 }
 
-export default function Chat({ spreadsheetService, environment }: ChatProps) {
+export function Chat({ spreadsheetService, environment }: ChatProps) {
   const [input, setInput] = useState("");
   const [model, setModel] = useLocalStorage<Model>("model", models[0].value);
   const [anthropicApiKey, setAnthropicApiKey] = useLocalStorage(
@@ -134,13 +134,19 @@ export default function Chat({ spreadsheetService, environment }: ChatProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editMode, setEditMode] = useState<"ask" | "auto">(EDIT_MODES[0].value);
 
+  // Update ref synchronously during render to avoid stale closures in transport
+  const anthropicApiKeyRef = useRef(anthropicApiKey);
+  anthropicApiKeyRef.current = anthropicApiKey;
+
   const {
-    messages,
-    sendMessage,
-    status,
-    regenerate,
-    addToolOutput,
     addToolApprovalResponse,
+    addToolOutput,
+    messages,
+    regenerate,
+    sendMessage,
+    setMessages,
+    status,
+    stop,
   } = useChat<SpreadsheetAgentUIMessage>({
     messageMetadataSchema,
     transport: {
@@ -152,7 +158,7 @@ export default function Chat({ spreadsheetService, environment }: ChatProps) {
           body: {
             messages: options.messages,
             options: {
-              anthropicApiKey,
+              anthropicApiKey: anthropicApiKeyRef.current,
               environment,
               model,
               sheets: await spreadsheetService.getSheets(),
@@ -284,15 +290,18 @@ export default function Chat({ spreadsheetService, environment }: ChatProps) {
   }
 
   return (
-    <div className="relative mx-auto size-full h-screen">
+    <div className="relative mx-auto size-full h-full">
       <div className="flex h-full flex-col">
         <header className="flex items-center justify-between border-b px-4 py-2">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => {
-                window.location.reload();
+              onClick={async () => {
+                await stop();
+                setMessages([]);
+                setInput("");
+                setEditMode(EDIT_MODES[0].value);
               }}
             >
               <PlusIcon className="size-4" />
@@ -315,7 +324,7 @@ export default function Chat({ spreadsheetService, environment }: ChatProps) {
             </Select>
           </div>
           <Dialog
-            open={settingsOpen}
+            open={settingsOpen || !anthropicApiKey}
             onOpenChange={(open) => {
               if (open) setApiKeyInput(anthropicApiKey);
               setSettingsOpen(open);
@@ -554,7 +563,6 @@ export default function Chat({ spreadsheetService, environment }: ChatProps) {
           <ConversationScrollButton />
         </Conversation>
         <PromptInput
-          autoFocus
           className="px-3 **:data-[slot=input-group]:rounded-b-none"
           globalDrop
           multiple
@@ -569,7 +577,8 @@ export default function Chat({ spreadsheetService, environment }: ChatProps) {
           </PromptInputHeader>
           <PromptInputBody>
             <PromptInputTextarea
-              className="min-h-24 text-sm"
+              autoFocus
+              className="min-h-24 text-sm!"
               onChange={(e) => setInput(e.target.value)}
               value={input}
             />

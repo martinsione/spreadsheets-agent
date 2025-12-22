@@ -1,10 +1,10 @@
 "use client";
 
 import type GC from "@mescius/spread-sheets";
+import { Chat } from "@repo/core/components/chat";
 import dynamic from "next/dynamic";
 import { useMemo, useRef } from "react";
 import { createWebSpreadsheetService } from "@/lib/spreadsheet-service";
-import { Chat } from "./chat";
 
 const Spreadsheet = dynamic(
   () => import("@/components/spreadsheet").then((mod) => mod.Spreadsheet),
@@ -36,7 +36,7 @@ export default function WorkbookPage() {
       </div>
 
       <div className="h-full w-[420px] overflow-hidden border-border border-l bg-background">
-        <Chat spreadsheetService={spreadsheetService} />
+        <Chat spreadsheetService={spreadsheetService} environment="web" />
       </div>
     </div>
   );

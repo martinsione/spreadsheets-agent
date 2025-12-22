@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.0",
+    "@ai-sdk/react": "^3.0.0",
     "@shikijs/langs": "^3.20.0",
     "@shikijs/themes": "^3.20.0",
     "ai": "^6.0.0",

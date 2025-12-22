@@ -1,5 +1,5 @@
 @import "@repo/core/styles.css";
-@source "../../../../packages/core/src/ui";
+@source "../../../../packages/core/src";
 
 @theme inline {
   --font-display: "Instrument Serif", serif;

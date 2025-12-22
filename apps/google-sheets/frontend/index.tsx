@@ -1,8 +1,8 @@
+import { Chat } from "@repo/core/components/chat";
 import type { SpreadsheetService } from "@repo/core/spreadsheet-service";
 import { GASClient } from "gas-client";
 import React from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App";
 import "@repo/core/styles.css";
 
 function renderApp(spreadsheetService: SpreadsheetService) {
@@ -11,7 +11,7 @@ function renderApp(spreadsheetService: SpreadsheetService) {
     const root = createRoot(container);
     root.render(
       <React.StrictMode>
-        <App
+        <Chat
           spreadsheetService={spreadsheetService}
           environment="google-sheets"
         />

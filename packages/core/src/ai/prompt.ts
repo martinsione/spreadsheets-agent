@@ -489,7 +489,7 @@ export const getSystemPrompt = (
   const productName = {
     excel: "Microsoft Excel",
     "google-sheets": "Google Sheets",
-    web: "OpenSheets Web",
+    web: "OpenSheets Web (using SpreadJS for the spreadsheet)",
   }[product];
 
   return prompt
