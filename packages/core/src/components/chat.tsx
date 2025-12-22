@@ -59,6 +59,10 @@ import {
 } from "@repo/core/components/ai-elements/tool";
 import { ToolApprovalBar } from "@repo/core/components/ai-elements/tool-approval-bar";
 import { Anthropic } from "@repo/core/components/icons/anthropic";
+import {
+  type MCPServerConfig,
+  MCPSettings,
+} from "@repo/core/components/mcp-settings";
 import { Button } from "@repo/core/components/ui/button";
 import {
   Dialog,
@@ -77,6 +81,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/core/components/ui/select";
+import { Separator } from "@repo/core/components/ui/separator";
 import { useLocalStorage } from "@repo/core/lib/utils";
 import type { SpreadsheetService } from "@repo/core/spreadsheet-service";
 import {
@@ -130,13 +135,19 @@ export function Chat({ spreadsheetService, environment }: ChatProps) {
     "ANTHROPIC_API_KEY",
     "",
   );
+  const [mcpServers, setMcpServers] = useLocalStorage<MCPServerConfig[]>(
+    "MCP_SERVERS",
+    [],
+  );
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editMode, setEditMode] = useState<"ask" | "auto">(EDIT_MODES[0].value);
 
-  // Update ref synchronously during render to avoid stale closures in transport
+  // Update refs synchronously during render to avoid stale closures in transport
   const anthropicApiKeyRef = useRef(anthropicApiKey);
   anthropicApiKeyRef.current = anthropicApiKey;
+  const mcpServersRef = useRef(mcpServers);
+  mcpServersRef.current = mcpServers;
 
   const {
     addToolApprovalResponse,
@@ -162,6 +173,13 @@ export function Chat({ spreadsheetService, environment }: ChatProps) {
               environment,
               model,
               sheets: await spreadsheetService.getSheets(),
+              mcp:
+                mcpServersRef.current.length > 0
+                  ? {
+                      servers: mcpServersRef.current,
+                      prefixToolsWithServerId: false,
+                    }
+                  : undefined,
             } satisfies CallOptionsSchema,
           },
         });
@@ -361,14 +379,14 @@ export function Chat({ spreadsheetService, environment }: ChatProps) {
                 <SettingsIcon className="size-4" />
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Settings</DialogTitle>
                 <DialogDescription>
-                  Configure your API key to use the chat.
+                  Configure your API key and MCP servers.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-2 py-2">
+              <div className="space-y-4 py-2">
                 <div className="space-y-2">
                   <label htmlFor="api-key" className="font-medium text-sm">
                     Anthropic API Key
@@ -385,6 +403,13 @@ export function Chat({ spreadsheetService, environment }: ChatProps) {
                     servers.
                   </p>
                 </div>
+
+                <Separator />
+
+                <MCPSettings
+                  servers={mcpServers}
+                  onServersChange={setMcpServers}
+                />
               </div>
               <DialogFooter>
                 <Button
