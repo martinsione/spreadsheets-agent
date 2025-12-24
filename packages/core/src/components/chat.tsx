@@ -59,6 +59,7 @@ import {
 } from "@repo/core/components/ai-elements/tool";
 import { ToolApprovalBar } from "@repo/core/components/ai-elements/tool-approval-bar";
 import { Anthropic } from "@repo/core/components/icons/anthropic";
+import { MCPManager } from "@repo/core/components/mcp";
 import { Button } from "@repo/core/components/ui/button";
 import {
   Dialog,
@@ -78,6 +79,7 @@ import {
   SelectValue,
 } from "@repo/core/components/ui/select";
 import { useLocalStorage } from "@repo/core/lib/utils";
+import { useMCP } from "@repo/core/mcp";
 import type { SpreadsheetService } from "@repo/core/spreadsheet-service";
 import {
   type ChatOnToolCallCallback,
@@ -134,9 +136,14 @@ export function Chat({ spreadsheetService, environment }: ChatProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editMode, setEditMode] = useState<"ask" | "auto">(EDIT_MODES[0].value);
 
-  // Update ref synchronously during render to avoid stale closures in transport
+  // MCP connections
+  const mcp = useMCP();
+
+  // Update refs synchronously during render to avoid stale closures in transport
   const anthropicApiKeyRef = useRef(anthropicApiKey);
   anthropicApiKeyRef.current = anthropicApiKey;
+  const mcpRef = useRef(mcp);
+  mcpRef.current = mcp;
 
   const {
     addToolApprovalResponse,
@@ -154,6 +161,27 @@ export function Chat({ spreadsheetService, environment }: ChatProps) {
         throw new Error("Not implemented");
       },
       async sendMessages(options) {
+        // Collect MCP tools from connected servers
+        const mcpTools: Array<{
+          name: string;
+          description?: string;
+          connectionId: string;
+          connectionName: string;
+        }> = [];
+
+        for (const conn of mcpRef.current.connections) {
+          if (conn.status === "connected") {
+            for (const tool of conn.tools) {
+              mcpTools.push({
+                name: tool.name,
+                description: tool.description,
+                connectionId: conn.config.id,
+                connectionName: conn.config.name,
+              });
+            }
+          }
+        }
+
         return createAgentUIStream({
           body: {
             messages: options.messages,
@@ -162,13 +190,38 @@ export function Chat({ spreadsheetService, environment }: ChatProps) {
               environment,
               model,
               sheets: await spreadsheetService.getSheets(),
+              mcpTools: mcpTools.length > 0 ? mcpTools : undefined,
             } satisfies CallOptionsSchema,
           },
         });
       },
     },
     onToolCall: async ({ toolCall }) => {
-      if (toolCall.dynamic) return;
+      // Handle dynamic MCP tool calls
+      if (toolCall.dynamic) {
+        const mcpClients = mcp.getClients();
+        for (const [, client] of mcpClients) {
+          try {
+            const tools = await client.tools();
+            if (toolCall.toolName in tools) {
+              // Execute the tool using the MCP client
+              const tool = tools[toolCall.toolName as keyof typeof tools];
+              if (tool && typeof tool === "object" && "execute" in tool) {
+                const toolWithExecute = tool as unknown as {
+                  execute: (
+                    input: unknown,
+                    options: unknown,
+                  ) => Promise<unknown>;
+                };
+                await toolWithExecute.execute(toolCall.input, {});
+              }
+            }
+          } catch (error) {
+            console.error(`MCP tool ${toolCall.toolName} failed:`, error);
+          }
+        }
+        return;
+      }
 
       if (isWriteTool(toolCall.toolName)) {
         const input = toolCall.input as Record<string, unknown>;
@@ -349,55 +402,58 @@ export function Chat({ spreadsheetService, environment }: ChatProps) {
               </SelectContent>
             </Select>
           </div>
-          <Dialog
-            open={settingsOpen || !anthropicApiKey}
-            onOpenChange={(open) => {
-              if (open) setApiKeyInput(anthropicApiKey);
-              setSettingsOpen(open);
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <SettingsIcon className="size-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Settings</DialogTitle>
-                <DialogDescription>
-                  Configure your API key to use the chat.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-2 py-2">
-                <div className="space-y-2">
-                  <label htmlFor="api-key" className="font-medium text-sm">
-                    Anthropic API Key
-                  </label>
-                  <Input
-                    id="api-key"
-                    type="password"
-                    placeholder="sk-ant-..."
-                    value={apiKeyInput}
-                    onChange={(e) => setApiKeyInput(e.target.value)}
-                  />
-                  <p className="text-muted-foreground text-xs">
-                    Your API key is stored locally and never sent to our
-                    servers.
-                  </p>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  onClick={() => {
-                    setAnthropicApiKey(apiKeyInput);
-                    setSettingsOpen(false);
-                  }}
-                >
-                  Save
+          <div className="flex items-center gap-1">
+            <MCPManager mcp={mcp} />
+            <Dialog
+              open={settingsOpen || !anthropicApiKey}
+              onOpenChange={(open) => {
+                if (open) setApiKeyInput(anthropicApiKey);
+                setSettingsOpen(open);
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <SettingsIcon className="size-4" />
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Settings</DialogTitle>
+                  <DialogDescription>
+                    Configure your API key to use the chat.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2 py-2">
+                  <div className="space-y-2">
+                    <label htmlFor="api-key" className="font-medium text-sm">
+                      Anthropic API Key
+                    </label>
+                    <Input
+                      id="api-key"
+                      type="password"
+                      placeholder="sk-ant-..."
+                      value={apiKeyInput}
+                      onChange={(e) => setApiKeyInput(e.target.value)}
+                    />
+                    <p className="text-muted-foreground text-xs">
+                      Your API key is stored locally and never sent to our
+                      servers.
+                    </p>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    onClick={() => {
+                      setAnthropicApiKey(apiKeyInput);
+                      setSettingsOpen(false);
+                    }}
+                  >
+                    Save
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </header>
 
         <Conversation className="h-full">

@@ -32,7 +32,11 @@ export const SpreadsheetAgent = new ToolLoopAgent({
     return {
       ...initialOptions,
       model: wrappedModel,
-      system: getSystemPrompt(options.sheets, options.environment),
+      system: getSystemPrompt(
+        options.sheets,
+        options.environment,
+        options.mcpTools,
+      ),
       providerOptions: {
         anthropic: {
           cacheControl: { type: "ephemeral" },

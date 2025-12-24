@@ -479,11 +479,72 @@ Use citations when:
 - Explaining formulas and their references
 - Pointing out issues or patterns in specific cells
 - Directing user attention to particular locations
-{{integrationPrompts}}`;
+{{integrationPrompts}}
+{{mcpToolsPrompt}}`;
+
+function getMCPToolsPrompt(
+  mcpTools?: Array<{
+    name: string;
+    description?: string;
+    connectionId: string;
+    connectionName: string;
+  }>,
+): string {
+  if (!mcpTools || mcpTools.length === 0) {
+    return "";
+  }
+
+  // Group tools by connection
+  const toolsByConnection = new Map<
+    string,
+    {
+      connectionName: string;
+      tools: Array<{ name: string; description?: string }>;
+    }
+  >();
+
+  for (const tool of mcpTools) {
+    const existing = toolsByConnection.get(tool.connectionId);
+    if (existing) {
+      existing.tools.push({ name: tool.name, description: tool.description });
+    } else {
+      toolsByConnection.set(tool.connectionId, {
+        connectionName: tool.connectionName,
+        tools: [{ name: tool.name, description: tool.description }],
+      });
+    }
+  }
+
+  const sections: string[] = [];
+  for (const [, { connectionName, tools }] of toolsByConnection) {
+    const toolList = tools
+      .map((t) => `- **${t.name}**: ${t.description || "No description"}`)
+      .join("\n");
+    sections.push(`### ${connectionName}\n${toolList}`);
+  }
+
+  return `
+## MCP (Model Context Protocol) Tools
+
+You have access to additional tools from connected MCP servers. These tools extend your capabilities beyond spreadsheet operations.
+
+${sections.join("\n\n")}
+
+When using MCP tools:
+- These tools are executed via external MCP servers configured by the user
+- Tool inputs and outputs follow the MCP protocol specification
+- If a tool fails, report the error clearly to the user`;
+}
 
 export const getSystemPrompt = (
   sheets: Sheet[],
   product: z.infer<typeof callOptionsSchema>["environment"],
+  mcpTools?: Array<{
+    name: string;
+    description?: string;
+    connectionId: string;
+    connectionName: string;
+  }>,
   prompt = systemPromptTemplate,
 ) => {
   const productName = {
@@ -498,5 +559,6 @@ export const getSystemPrompt = (
     .replace(
       "{{integrationPrompts}}",
       product === "excel" ? getIntegrationsPrompt() : "",
-    );
+    )
+    .replace("{{mcpToolsPrompt}}", getMCPToolsPrompt(mcpTools));
 };

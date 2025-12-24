@@ -6,9 +6,11 @@
     "./spreadsheet-service": "./src/spreadsheet-service/index.ts",
     "./styles.css": "./src/styles.css",
     "./ai/*": "./src/ai/*.ts",
+    "./mcp": "./src/mcp/index.ts",
     "./lib/streamdown": "./src/lib/streamdown.tsx",
     "./lib/*": "./src/lib/*.ts",
-    "./components/*": "./src/components/*.tsx"
+    "./components/*": "./src/components/*.tsx",
+    "./components/mcp": "./src/components/mcp/index.ts"
   },
   "scripts": {
     "clean": "git clean -xdf -e '.env*'",
@@ -16,6 +18,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.0",
+    "@ai-sdk/mcp": "^1.0.1",
     "@ai-sdk/react": "^3.0.0",
     "@shikijs/langs": "^3.20.0",
     "@shikijs/themes": "^3.20.0",
