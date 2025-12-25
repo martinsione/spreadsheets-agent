@@ -593,8 +593,7 @@ export function Chat({ spreadsheetService, environment }: ChatProps) {
           </PromptInputHeader>
           <PromptInputBody>
             <PromptInputTextarea
-              autoFocus
-              className="min-h-24 text-sm!"
+              className="min-h-24 text-base md:text-sm!"
               onChange={(e) => setInput(e.target.value)}
               value={input}
             />

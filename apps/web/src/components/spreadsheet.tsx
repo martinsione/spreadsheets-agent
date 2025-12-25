@@ -19,16 +19,11 @@ if (process.env.NEXT_PUBLIC_SPREADJS_DESIGNER_LICENSE_KEY) {
     process.env.NEXT_PUBLIC_SPREADJS_DESIGNER_LICENSE_KEY;
 }
 
-export interface SpreadsheetHandle {
-  getWorkbook: () => GC.Spread.Sheets.Workbook | null;
-}
-
-interface SpreadsheetProps {
+type SpreadsheetProps = {
   onInitialized?: (workbook: GC.Spread.Sheets.Workbook) => void;
-  className?: string;
-}
+};
 
-export function Spreadsheet({ onInitialized, className }: SpreadsheetProps) {
+export function Spreadsheet({ onInitialized }: SpreadsheetProps) {
   const workbookRef = useRef<GC.Spread.Sheets.Workbook | null>(null);
 
   const handleDesignerInit = useCallback(
@@ -43,29 +38,12 @@ export function Spreadsheet({ onInitialized, className }: SpreadsheetProps) {
       spread.options.allowContextMenu = true;
       spread.options.allowUserEditFormula = true;
 
-      let retries = 0;
-      const waitForReady = () => {
-        if (spread.getSheetCount() > 0) {
-          const sheet = spread.getActiveSheet();
-          if (sheet) {
-            sheet.setRowCount(1000);
-            sheet.setColumnCount(26);
-          }
-          onInitialized?.(spread);
-        } else if (retries++ < 100) {
-          requestAnimationFrame(waitForReady);
-        } else {
-          spread.addSheet(0);
-          const sheet = spread.getSheet(0);
-          if (sheet) {
-            sheet.name("Sheet1");
-            sheet.setRowCount(1000);
-            sheet.setColumnCount(26);
-          }
-          onInitialized?.(spread);
-        }
-      };
-      requestAnimationFrame(waitForReady);
+      const sheet = spread.getActiveSheet();
+      if (sheet) {
+        sheet.setRowCount(1000);
+        sheet.setColumnCount(26);
+      }
+      onInitialized?.(spread);
     },
     [onInitialized],
   );
@@ -74,7 +52,6 @@ export function Spreadsheet({ onInitialized, className }: SpreadsheetProps) {
     <Designer
       designerInitialized={handleDesignerInit}
       styleInfo={{ width: "100%", height: "100%" }}
-      className={className}
     />
   );
 }
