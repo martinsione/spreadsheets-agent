@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Instrument_Serif, Inter } from "next/font/google";
 import "./globals.css";
@@ -29,6 +30,7 @@ export default function RootLayout({
         className={`${inter.variable} ${instrumentSerif.variable} bg-olive-100 antialiased`}
       >
         {children}
+        <Analytics />
       </body>
     </html>
   );
