@@ -15,7 +15,7 @@ const instrumentSerif = Instrument_Serif({
 
 export const metadata: Metadata = {
   title: "OpenSheets",
-  description: "OpenSheets",
+  description: "The open source spreadsheet agent",
 };
 
 export default function RootLayout({
