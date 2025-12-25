@@ -2,9 +2,9 @@
 
 import type GC from "@mescius/spread-sheets";
 import { Chat } from "@repo/core/components/chat";
+import type { SpreadsheetService } from "@repo/core/spreadsheet-service";
 import dynamic from "next/dynamic";
-import { useMemo, useRef } from "react";
-import { createWebSpreadsheetService } from "@/lib/spreadsheet-service";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const Spreadsheet = dynamic(
   () => import("@/components/spreadsheet").then((mod) => mod.Spreadsheet),
@@ -20,10 +20,19 @@ const Spreadsheet = dynamic(
 
 export default function WorkbookPage() {
   const workbookRef = useRef<GC.Spread.Sheets.Workbook | null>(null);
-  const spreadsheetService = useMemo(
-    () => createWebSpreadsheetService(() => workbookRef.current),
-    [],
-  );
+  const [spreadsheetService, setSpreadsheetService] =
+    useState<SpreadsheetService | null>(null);
+
+  useEffect(() => {
+    // Dynamically import the service to avoid SSR issues with SpreadJS
+    import("@/lib/spreadsheet-service").then(
+      ({ createWebSpreadsheetService }) => {
+        setSpreadsheetService(
+          createWebSpreadsheetService(() => workbookRef.current),
+        );
+      },
+    );
+  }, []);
 
   return (
     <div className="flex h-full w-full">
@@ -36,7 +45,13 @@ export default function WorkbookPage() {
       </div>
 
       <div className="h-full w-[420px] overflow-hidden border-border border-l bg-background">
-        <Chat spreadsheetService={spreadsheetService} environment="web" />
+        {spreadsheetService ? (
+          <Chat spreadsheetService={spreadsheetService} environment="web" />
+        ) : (
+          <div className="flex h-full items-center justify-center text-muted-foreground">
+            Loading...
+          </div>
+        )}
       </div>
     </div>
   );
